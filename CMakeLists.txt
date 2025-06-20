@@ -4,6 +4,7 @@ project(PseKNC_Benchmark LANGUAGES CXX CUDA)
 
 find_package(CURL REQUIRED)
 find_package(Threads REQUIRED)
+find_package(OpenMP REQUIRED)
 
     
 add_executable(benchmark
@@ -12,6 +13,7 @@ add_executable(benchmark
     src/CPUProcessor.cpp
     src/OMPProcessor.cpp
     src/GPUProcessor.cu
+    src/PseKNCProcessor.cpp
     src/include/DataManager.h
     src/include/PseKNCProcessor.h
     src/include/CPUProcessor.h
@@ -22,13 +24,14 @@ add_executable(benchmark
 
 target_include_directories(benchmark PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
+target_compile_definitions(benchmark PRIVATE WITH_CUDA)
 
 target_link_libraries(benchmark
-    PRIVATE
-    CURL::libcurl
-    Threads::Threads
+        PRIVATE
+        CURL::libcurl
+        Threads::Threads
+        OpenMP::OpenMP_CXX
 )
-
 
 set_target_properties(benchmark PROPERTIES
     CXX_STANDARD 20
