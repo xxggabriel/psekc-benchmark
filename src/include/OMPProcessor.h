@@ -5,11 +5,13 @@
 
 class OMPProcessor : public PseKNCProcessor {
 public:
-    OMPProcessor(const PropertiesMap& properties, PseKNCParams params);
-    std::vector<double> process(const std::string& sequence) override;
+    OMPProcessor(const PropertiesMap &properties, PseKNCParams params);
+
+    std::vector<double> process(const std::string &sequence) override;
 
 private:
-    double calculate_theta(const std::vector<std::string>& k_tuples, int lambda_i);
-};
+    std::vector<std::string> prepare_ktuples(const std::string &sequence) override;
 
+    double calculate_theta(const std::vector<std::string> &k_tuples, int lambda_i);
+};
 #endif // OMPPROCESSOR_H
