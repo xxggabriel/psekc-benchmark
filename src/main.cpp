@@ -1,12 +1,16 @@
 #include "include/DataManager.h"
 #include "include/CPUProcessor.h"
-#include "include/GPUProcessor.h"
 #include "include/OMPProcessor.h"
+// #ifdef WITH_CUDA
+#include "include/GPUProcessor.h"
+#include <cuda_runtime.h>
+// #endif
 #include <iostream>
 #include <chrono>
 #include <vector>
 #include <cmath>
-#include <iomanip> // Para std::fixed e std::setprecision
+#include <cuda_runtime_api.h>
+#include <iomanip>
 
 // Função para checar consistência dos resultados
 bool check_consistency(const std::string& name1, const std::vector<double>& vec1, 
@@ -36,7 +40,7 @@ bool check_consistency(const std::string& name1, const std::vector<double>& vec1
 int main() {
     try {
         // --- Configuração ---
-        DataManager data_manager("data/dirna_properties.csv", "data/mini-data.txt");
+        DataManager data_manager("../data/dirna_properties.csv", "../data/allData_8M.fasta");
         auto properties = data_manager.load_properties();
         auto sequence = data_manager.load_sequence();
 
@@ -47,6 +51,22 @@ int main() {
         std::cout << "Parâmetros: K=" << params.k_value << ", LambdaMax=" << params.lambda_max << ", Weight=" << params.weight << std::endl;
         
         std::cout << std::fixed << std::setprecision(4); // Formatação para tempos
+
+        // --- Benchmark da GPU ---
+        double duration_gpu_val = -1.0;
+        std::vector<double> vector_gpu;
+        // #ifdef __CUDACC__
+        GPUProcessor gpu_proc(properties, params);
+        auto start_gpu = std::chrono::high_resolution_clock::now();
+        vector_gpu = gpu_proc.process(sequence);
+        cudaDeviceSynchronize(); // Garante que todos os kernels terminaram
+        auto end_gpu = std::chrono::high_resolution_clock::now();
+        duration_gpu_val = std::chrono::duration<double>(end_gpu - start_gpu).count();
+        std::cout << "\n--- Processamento GPU (CUDA) Concluído ---" << std::endl;
+        std::cout << "Tempo de execução: " << duration_gpu_val << " segundos." << std::endl;
+        // #else
+        //     std::cout << "\nCompilado sem suporte a CUDA. Benchmark da GPU ignorado." << std::endl;
+        // #endif
 
         // --- Benchmark da CPU Sequencial ---
         CPUProcessor cpu_proc(properties, params);
@@ -66,22 +86,6 @@ int main() {
         std::cout << "\n--- Processamento CPU Paralelo (OpenMP) Concluído ---" << std::endl;
         std::cout << "Tempo de execução: " << duration_omp.count() << " segundos." << std::endl;
 
-
-        // --- Benchmark da GPU ---
-        double duration_gpu_val = -1.0;
-        std::vector<double> vector_gpu;
-        #ifdef __CUDACC__
-            GPUProcessor gpu_proc(properties, params);
-            auto start_gpu = std::chrono::high_resolution_clock::now();
-            vector_gpu = gpu_proc.process(sequence);
-            cudaDeviceSynchronize(); // Garante que todos os kernels terminaram
-            auto end_gpu = std::chrono::high_resolution_clock::now();
-            duration_gpu_val = std::chrono::duration<double>(end_gpu - start_gpu).count();
-            std::cout << "\n--- Processamento GPU (CUDA) Concluído ---" << std::endl;
-            std::cout << "Tempo de execução: " << duration_gpu_val << " segundos." << std::endl;
-        #else
-            std::cout << "\nCompilado sem suporte a CUDA. Benchmark da GPU ignorado." << std::endl;
-        #endif
 
         // --- Tabela de Resultados ---
         std::cout << "\n--- Resultados Finais do Benchmark ---" << std::endl;
