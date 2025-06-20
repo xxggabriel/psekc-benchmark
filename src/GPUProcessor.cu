@@ -5,8 +5,6 @@
 #include <iostream>
 #include <map>
 #include <numeric>
-#include <stdexcept>
-#include <omp.h>
 
 #define CUDA_CHECK(err) { \
     cudaError_t e = err; \
@@ -72,34 +70,24 @@ void GPUProcessor::setup_gpu_data() {
 
 
 std::vector<int> GPUProcessor::prepare_ktuples_to_indices(const std::string& sequence) {
-    std::cout << "Gerando e filtrando k-tuples para índices (método híbrido OpenMP)..." << std::endl;
-
-    std::vector<std::vector<int>> thread_local_vectors;
-    size_t num_k_tuples_total = 0;
-
-    #pragma omp parallel
-    {
-        std::vector<int> local_indices;
-        #pragma omp for nowait
-        for (size_t i = 0; i <= sequence.length() - params.k_value; ++i) {
-            std::string kt = sequence.substr(i, params.k_value);
-            auto it = k_tuple_to_index.find(kt);
-            if (it != k_tuple_to_index.end()) {
-                local_indices.push_back(it->second);
-            }
-        }
-        #pragma omp critical
-        {
-            num_k_tuples_total += local_indices.size();
-            thread_local_vectors.push_back(std::move(local_indices));
-        }
-    }
+    std::cout << "Gerando e filtrando k-tuples para índices (método sequencial)..." << std::endl;
 
     std::vector<int> k_tuple_indices_filtered;
-    k_tuple_indices_filtered.reserve(num_k_tuples_total);
-    for (const auto& local_vec : thread_local_vectors) {
-        k_tuple_indices_filtered.insert(k_tuple_indices_filtered.end(), local_vec.begin(), local_vec.end());
+
+    // Reserva memória para evitar realocações frequentes
+    if (sequence.length() >= static_cast<size_t>(params.k_value)) {
+        k_tuple_indices_filtered.reserve(sequence.length() - params.k_value + 1);
     }
+
+
+    for (size_t i = 0; i <= sequence.length() - params.k_value; ++i) {
+        std::string kt = sequence.substr(i, params.k_value);
+        auto it = k_tuple_to_index.find(kt);
+        if (it != k_tuple_to_index.end()) {
+            k_tuple_indices_filtered.push_back(it->second);
+        }
+    }
+
 
     std::cout << "  -> Total de k-tuples válidos: " << k_tuple_indices_filtered.size() << std::endl;
     return k_tuple_indices_filtered;
