@@ -3,7 +3,7 @@
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
-
+#include <algorithm>
 DataManager::DataManager(std::string data_path, std::string sequence_path)
     : data_filepath(std::move(data_path)), sequence_filepath(std::move(sequence_path)) {}
 
