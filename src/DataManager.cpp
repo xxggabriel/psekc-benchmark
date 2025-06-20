@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
+
 DataManager::DataManager(std::string data_path, std::string sequence_path)
     : data_filepath(std::move(data_path)), sequence_filepath(std::move(sequence_path)) {}
 
@@ -38,13 +39,28 @@ std::string DataManager::load_sequence() {
     if (!file.is_open()) {
         throw std::runtime_error("Erro: Não foi possível abrir o arquivo de sequência: " + sequence_filepath);
     }
-    
-    std::string sequence;
+
+    std::string combined_sequence;
     std::string line;
+
     while (std::getline(file, line)) {
-        // Remove possíveis espaços em branco ou quebras de linha
-        line.erase(std::remove_if(line.begin(), line.end(), ::isspace), line.end());
-        sequence += line;
+        // Remove espaços em branco no início/fim da linha
+        line.erase(0, line.find_first_not_of(" \t\n\r"));
+        line.erase(line.find_last_not_of(" \t\n\r") + 1);
+
+        if (line.empty()) {
+            continue;
+        }
+
+
+        if (line[0] != '>') {
+            combined_sequence += line;
+        }
     }
-    return sequence;
+
+    if (combined_sequence.empty()) {
+        throw std::runtime_error("Nenhuma sequência encontrada no ficheiro FASTA.");
+    }
+
+    return combined_sequence;
 }
