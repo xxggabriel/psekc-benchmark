@@ -18,7 +18,7 @@ public:
     virtual std::vector<double> process(const std::string& sequence) = 0;
 
 protected:
-    std::vector<std::string> prepare_ktuples(const std::string& sequence);
+    virtual std::vector<std::string> prepare_ktuples(const std::string& sequence);
 
     const PropertiesMap& properties_map;
     PseKNCParams params;
