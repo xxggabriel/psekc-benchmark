@@ -29,6 +29,10 @@ add_executable(benchmark
         src/PseKNCProcessor.cpp
         src/CPUProcessor.cpp
         src/OMPProcessor.cpp
+        src/include/BenchmarkRunner.h
+        src/BenchmarkRunner.cpp
+        src/include/ReportGenerator.h
+        src/ReportGenerator.cpp
 )
 
 if(CUDA_SUPPORT_ENABLED)
