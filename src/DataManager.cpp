@@ -8,7 +8,7 @@
 DataManager::DataManager(std::string data_path, std::string sequence_path)
     : data_filepath(std::move(data_path)), sequence_filepath(std::move(sequence_path)) {}
 
-PropertiesMap DataManager::load_properties() {
+PropertiesMap DataManager::load_and_augment_properties() {
     std::ifstream file(data_filepath);
     if (!file.is_open()) {
         throw std::runtime_error("Erro: Não foi possível abrir o arquivo de propriedades: " + data_filepath);
@@ -34,33 +34,40 @@ PropertiesMap DataManager::load_properties() {
     return properties;
 }
 
-std::string DataManager::load_sequence() {
+std::vector<std::string> DataManager::load_sequences() {
     std::ifstream file(sequence_filepath);
     if (!file.is_open()) {
         throw std::runtime_error("Erro: Não foi possível abrir o arquivo de sequência: " + sequence_filepath);
     }
 
-    std::string combined_sequence;
-    std::string line;
+    std::vector<std::string> sequences;
+    std::string current_sequence;
 
+    std::string line;
     while (std::getline(file, line)) {
-        // Remove espaços em branco no início/fim da linha
         line.erase(0, line.find_first_not_of(" \t\n\r"));
         line.erase(line.find_last_not_of(" \t\n\r") + 1);
 
-        if (line.empty()) {
-            continue;
-        }
+        if (line.empty()) continue;
 
-
-        if (line[0] != '>') {
-            combined_sequence += line;
+        if (line[0] == '>') {
+            if (!current_sequence.empty()) {
+                sequences.push_back(current_sequence);
+            }
+            current_sequence.clear();
+        } else {
+            current_sequence += line;
         }
     }
 
-    if (combined_sequence.empty()) {
+    if (!current_sequence.empty()) {
+        sequences.push_back(current_sequence);
+    }
+
+    if (sequences.empty()) {
         throw std::runtime_error("Nenhuma sequência encontrada no ficheiro FASTA.");
     }
 
-    return combined_sequence;
+    std::cout << "Carregadas " << sequences.size() << " sequências do ficheiro." << std::endl;
+    return sequences;
 }
