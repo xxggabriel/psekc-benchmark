@@ -49,23 +49,19 @@ bool check_consistency(const std::string& name1, const std::vector<double>& vec1
 
 int main() {
     try {
-        // --- 1. Configuração e Carregamento de Dados ---
         DataManager data_manager("../data/dirna_properties.csv", "../data/allData_8M.fasta");
 
-        auto properties = data_manager.load_properties();
-        auto sequence = data_manager.load_sequence();
+        auto properties = data_manager.load_and_augment_properties();
+        auto sequences = data_manager.load_sequences();
 
         PseKNCParams params = {2, 10, 0.1};
 
-        // --- 2. Definição dos Tamanhos para o Benchmark ---
-        std::vector<long long> benchmark_sizes = {100, 1000, 10000, 100000};
-        // Adiciona o tamanho completo da sequência como o teste final
-        if(sequence.length() > 100000) {
-            benchmark_sizes.push_back(sequence.length());
+        std::vector<long long> benchmark_sizes = {100, 1000, 10000};
+        if(sequences.size() > 10000) {
+            benchmark_sizes.push_back(sequences.size());
         }
 
-        // --- 3. Execução do Benchmark ---
-        BenchmarkRunner runner(sequence, params, properties);
+        BenchmarkRunner runner(sequences, params, properties);
         runner.run(benchmark_sizes);
 
     } catch (const std::exception& e) {
