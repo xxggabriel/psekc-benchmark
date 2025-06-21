@@ -34,14 +34,15 @@ PropertiesMap DataManager::load_and_augment_properties() {
     return properties;
 }
 
-std::vector<std::string> DataManager::load_sequences() {
+std::vector<SequenceData> DataManager::load_sequences() {
     std::ifstream file(sequence_filepath);
     if (!file.is_open()) {
         throw std::runtime_error("Erro: Não foi possível abrir o arquivo de sequência: " + sequence_filepath);
     }
 
-    std::vector<std::string> sequences;
+    std::vector<SequenceData> sequences;
     std::string current_sequence;
+    std::string current_id;
 
     std::string line;
     while (std::getline(file, line)) {
@@ -51,17 +52,21 @@ std::vector<std::string> DataManager::load_sequences() {
         if (line.empty()) continue;
 
         if (line[0] == '>') {
-            if (!current_sequence.empty()) {
-                sequences.push_back(current_sequence);
+            // Se já tínhamos uma sequência e um ID, guarda o par
+            if (!current_sequence.empty() && !current_id.empty()) {
+                sequences.push_back({current_id, current_sequence});
             }
+            // Guarda o novo ID (sem o '>') e limpa a sequência atual
+            current_id = line.substr(1);
             current_sequence.clear();
         } else {
             current_sequence += line;
         }
     }
 
-    if (!current_sequence.empty()) {
-        sequences.push_back(current_sequence);
+    // Garante o push da ultima sequência
+    if (!current_sequence.empty() && !current_id.empty()) {
+        sequences.push_back({current_id, current_sequence});
     }
 
     if (sequences.empty()) {
