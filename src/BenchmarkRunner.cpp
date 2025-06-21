@@ -11,9 +11,14 @@
 #include <vector>
 #include <cmath>
 
-BenchmarkRunner::BenchmarkRunner(std::vector<std::string> sequences, PseKNCParams params,
+#include "include/ReportGenerator.h"
+
+BenchmarkRunner::BenchmarkRunner(std::vector<SequenceData> sequences,
+                                 PseKNCParams params,
                                  const PropertiesMap &properties)
-    : main_sequences(std::move(sequences)), params(params), properties(properties) {
+    : main_sequences(std::move(sequences)),
+      params(params),
+      properties(properties) {
     cpu_processor = std::make_unique<CPUProcessor>(properties, params);
     omp_processor = std::make_unique<OMPProcessor>(properties, params);
 #ifdef WITH_CUDA
@@ -21,9 +26,12 @@ BenchmarkRunner::BenchmarkRunner(std::vector<std::string> sequences, PseKNCParam
 #endif
 }
 
-// Função auxiliar para verificar a consistência de duas matrizes de resultados
 bool check_matrix_consistency(const std::string &name1, const std::vector<std::vector<double> > &matrix1,
                               const std::string &name2, const std::vector<std::vector<double> > &matrix2) {
+    if (matrix1.empty() || matrix2.empty()) {
+        std::cout << "Aviso: Impossível verificar consistência pois um dos resultados está vazio." << std::endl;
+        return false;
+    }
     if (matrix1.size() != matrix2.size()) {
         std::cout << "  -> Inconsistência de tamanho (número de sequências): "
                 << name1 << " (" << matrix1.size() << ") vs "
@@ -54,74 +62,124 @@ bool check_matrix_consistency(const std::string &name1, const std::vector<std::v
 
 void BenchmarkRunner::run(const std::vector<long long> &num_sequences_to_run) {
     std::vector<BenchmarkResult> all_results;
+    const auto feature_names = cpu_processor->get_feature_names();
 
     for (long long num_seqs: num_sequences_to_run) {
-        if (num_seqs > main_sequences.size()) {
-            std::cout << "\nAviso: Número de sequências solicitado (" << num_seqs << ") é maior que o disponível ("
-                    << main_sequences.size() << "). A ignorar." << std::endl;
+        if (num_seqs > (long long) main_sequences.size()) {
+            std::cout << "\nAviso: Solicitação de " << num_seqs
+                    << " sequências, mas só há " << main_sequences.size()
+                    << ". Ignorando.\n";
             continue;
         }
 
-        auto sequence_subset = std::vector<std::string>(main_sequences.begin(), main_sequences.begin() + num_seqs);
+        auto sequence_pairs_subset = std::vector<SequenceData>(main_sequences.begin(),
+                                                               main_sequences.begin() + num_seqs);
+        std::vector<std::string> sequence_subset;
+        std::vector<std::string> id_subset;
+        sequence_subset.reserve(num_seqs);
+        id_subset.reserve(num_seqs);
+        for (const auto &pair: sequence_pairs_subset) {
+            id_subset.push_back(pair.first);
+            sequence_subset.push_back(pair.second);
+        }
 
-        std::cout << "\n======================================================================" << std::endl;
-        std::cout << "Iniciando benchmark para " << num_seqs << " sequências" << std::endl;
-        std::cout << "======================================================================" << std::endl;
+        bool cpu_sequential_benchmark = true;
+        bool omp_benchmark = true;
+        bool gpu_benchmark = true;
 
-        // --- Benchmark da GPU (CUDA) ---
-        double duration_gpu_val = -1.0;
+        std::cout << "\n===== Benchmark: " << num_seqs << " sequências =====" << std::endl;
+
+        double time_cpu = -1.0;
+        double time_gpu = -1.0;
+
+        std::vector<std::vector<double> > results_cpu;
+        std::vector<std::vector<double> > results_omp;
         std::vector<std::vector<double> > results_gpu;
-#ifdef WITH_CUDA
-        results_gpu.reserve(num_seqs);
-        auto start_gpu = std::chrono::high_resolution_clock::now();
-        for (const auto &seq: sequence_subset) {
-            results_gpu.push_back(gpu_processor->process(seq));
-        }
-        cudaDeviceSynchronize();
-        auto end_gpu = std::chrono::high_resolution_clock::now();
-        duration_gpu_val = std::chrono::duration<double>(end_gpu - start_gpu).count();
-        std::cout << "-> GPU (CUDA) Concluído em: " << duration_gpu_val << "s" << std::endl;
-#endif
-
-        // --- Benchmark da CPU Paralela (OpenMP) ---
-        int num_threads = omp_get_max_threads();
-        std::vector<std::vector<double> > results_omp(num_seqs);
-        auto start_omp = std::chrono::high_resolution_clock::now();
-#pragma omp parallel for
-        for (long long i = 0; i < num_seqs; ++i) {
-            results_omp[i] = omp_processor->process(sequence_subset[i]);
-        }
-        auto end_omp = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> duration_omp = end_omp - start_omp;
-        std::cout << "-> CPU Paralelo (OpenMP) Concluído em: " << duration_omp.count() << "s" << std::endl;
-
 
         // --- Benchmark da CPU Sequencial ---
-        std::vector<std::vector<double> > results_cpu;
-        results_cpu.reserve(num_seqs);
-        auto start_cpu = std::chrono::high_resolution_clock::now();
-        for (const auto &seq: sequence_subset) {
-            results_cpu.push_back(cpu_processor->process(seq));
+        if (cpu_sequential_benchmark) {
+            results_cpu.resize(num_seqs);
+            auto t0 = std::chrono::high_resolution_clock::now();
+            for (long long i = 0; i < num_seqs; ++i) {
+                results_cpu[i] = cpu_processor->process(sequence_subset[i]);
+            }
+            auto t1 = std::chrono::high_resolution_clock::now();
+
+            time_cpu = std::chrono::duration<double>(t1 - t0).count();
+            std::cout << "-> CPU Seq: " << time_cpu << " s" << std::endl;
+            all_results.push_back({"CPU Seq", num_seqs, 1, time_cpu, 1.0, 100.0});
+            ReportGenerator::save_feature_matrix(
+                "../data/cpu_results",
+                results_cpu,
+                feature_names,
+                id_subset,
+                "CPU_Sequencial",
+                num_seqs
+            );
         }
-        auto end_cpu = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> duration_cpu = end_cpu - start_cpu;
-        std::cout << "-> CPU Sequencial Concluído em: " << duration_cpu.count() << "s" << std::endl;
 
-        // --- Armazenar Resultados e Verificar Consistência ---
-        double speedup_omp = duration_cpu.count() / duration_omp.count();
-        double efficiency_omp = (speedup_omp / num_threads) * 100.0;
+        // --- Benchmark da CPU Paralela (OpenMP) ---
+        if (omp_benchmark) {
+            int max_threads = omp_get_max_threads();
+            for (int nt = 2; nt <= max_threads; nt *= 2) {
+                omp_set_num_threads(nt);
+                results_omp.assign(num_seqs, {}); // Limpa e redimensiona
+                auto t2 = std::chrono::high_resolution_clock::now();
+#pragma omp parallel for
+                for (long long i = 0; i < num_seqs; ++i) {
+                    results_omp[i] = omp_processor->process(sequence_subset[i]);
+                }
+                auto t3 = std::chrono::high_resolution_clock::now();
+                double time_omp = std::chrono::duration<double>(t3 - t2).count();
 
-        all_results.push_back({"CPU Sequencial", num_seqs, 1, duration_cpu.count(), 1.0, 100.0});
-        all_results.push_back({
-            "CPU Paralelo (OMP)", num_seqs, num_threads, duration_omp.count(), speedup_omp, efficiency_omp
-        });
+                double speedup = (time_cpu > 0) ? (time_cpu / time_omp) : 0.0;
+                double efficiency = (time_cpu > 0) ? ((speedup / nt) * 100.0) : 0.0;
 
-        if (duration_gpu_val >= 0) {
-            double speedup_gpu = duration_cpu.count() / duration_gpu_val;
-            all_results.push_back({"GPU (CUDA)", num_seqs, -1, duration_gpu_val, speedup_gpu, -1.0});
-            check_matrix_consistency("CPU Seq", results_cpu, "GPU CUDA", results_gpu);
+                std::cout << "-> OMP (" << nt << " threads): " << time_omp
+                        << " s | Speedup=" << speedup
+                        << " | Eff=" << efficiency << "%" << std::endl;
+                all_results.push_back({"OpenMP", num_seqs, nt, time_omp, speedup, efficiency});
+                ReportGenerator::save_feature_matrix(
+                    "../data/omp_results",
+                    results_omp,
+                    feature_names,
+                    id_subset,
+                    "OMP_" + std::to_string(nt) + "_threads",
+                    num_seqs
+                );
+            }
+
+            if (cpu_sequential_benchmark) {
+                check_matrix_consistency("CPU Seq", results_cpu, "OpenMP", results_omp);
+            }
         }
-        check_matrix_consistency("CPU Seq", results_cpu, "CPU OMP", results_omp);
+
+        // --- Benchmark da GPU (CUDA) ---
+#ifdef WITH_CUDA
+        if (gpu_benchmark) {
+            auto tg0 = std::chrono::high_resolution_clock::now();
+            results_gpu = gpu_processor->process_batch(sequence_subset);
+            cudaDeviceSynchronize();
+            auto tg1 = std::chrono::high_resolution_clock::now();
+            time_gpu = std::chrono::duration<double>(tg1 - tg0).count();
+            double sp_gpu = (time_cpu > 0) ? (time_cpu / time_gpu) : 0.0;
+            std::cout << "-> GPU CUDA: " << time_gpu
+                    << " s | Speedup=" << sp_gpu << std::endl;
+            all_results.push_back({"GPU CUDA", num_seqs, -1, time_gpu, sp_gpu, -1.0});
+            ReportGenerator::save_feature_matrix(
+                "../data/gpu_results",
+                results_gpu,
+                feature_names,
+                id_subset,
+                "GPU_CUDA",
+                num_seqs
+            );
+
+            if (cpu_sequential_benchmark) {
+                check_matrix_consistency("CPU Seq", results_cpu, "GPU CUDA", results_gpu);
+            }
+        }
+#endif
     }
 
     ReportGenerator::print_table(all_results);
