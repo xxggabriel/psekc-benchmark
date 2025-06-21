@@ -11,7 +11,7 @@ OMPProcessor::OMPProcessor(const PropertiesMap &properties, PseKNCParams params)
 }
 
 std::vector<std::string> OMPProcessor::prepare_ktuples(const std::string &sequence) {
-    std::cout << "Gerando e filtrando k-tuples (método paralelo OpenMP)..." << std::endl;
+    // std::cout << "Gerando e filtrando k-tuples (método paralelo OpenMP)..." << std::endl;
 
     std::vector<std::vector<std::string> > thread_local_vectors;
     size_t num_k_tuples_total = 0;
@@ -44,7 +44,7 @@ std::vector<std::string> OMPProcessor::prepare_ktuples(const std::string &sequen
         k_tuples_filtered.insert(k_tuples_filtered.end(), local_vec.begin(), local_vec.end());
     }
 
-    std::cout << "  -> Total de k-tuples válidos: " << k_tuples_filtered.size() << std::endl;
+    // std::cout << "  -> Total de k-tuples válidos: " << k_tuples_filtered.size() << std::endl;
     return k_tuples_filtered;
 }
 
