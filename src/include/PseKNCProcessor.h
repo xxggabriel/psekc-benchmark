@@ -18,6 +18,8 @@ public:
 
     virtual std::vector<double> process(const std::string &sequence) = 0;
 
+    std::vector<std::string> get_feature_names() const;
+
 protected:
     virtual std::vector<std::string> prepare_ktuples(const std::string &sequence);
 
