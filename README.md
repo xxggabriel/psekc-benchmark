@@ -12,16 +12,14 @@
 # Navegue para a pasta raiz do projeto 'psekc-benchmark'
 
 # Crie um diretório de build
-mkdir build
-cd build
+mkdir build && cd build
 
 # Execute o CMake para configurar o projeto
 #    (O CMake encontrará o compilador CUDA automaticamente)
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 
 # Compile o projeto
-cmake --build . --config Release 
-# ou simplesmente 'make' em sistemas Linux/macOS
+make -j 
 
 # Execute o benchmark
 ./benchmark
