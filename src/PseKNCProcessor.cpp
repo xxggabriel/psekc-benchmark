@@ -11,6 +11,14 @@ PseKNCProcessor::PseKNCProcessor(const PropertiesMap &properties, PseKNCParams p
     std::sort(sorted_ktuples.begin(), sorted_ktuples.end());
 }
 
+std::vector<std::string> PseKNCProcessor::get_feature_names() const {
+    std::vector<std::string> names = sorted_ktuples;
+    for (int i = 1; i <= params.lambda_max; ++i) {
+        names.push_back("theta_" + std::to_string(i));
+    }
+    return names;
+}
+
 std::vector<std::string> PseKNCProcessor::prepare_ktuples(const std::string &sequence) {
     std::vector<std::string> k_tuples_filtered;
 
