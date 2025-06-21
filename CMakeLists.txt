@@ -18,6 +18,12 @@ else()
     set(CUDA_SUPPORT_ENABLED FALSE)
 endif()
 
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG -march=x86-64" CACHE STRING "Flags for Release build" FORCE)
+    set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG -march=x86-64" CACHE STRING "Flags for Release build" FORCE)
+    message(STATUS "Flags de compilação para GCC/Clang definidas para portabilidade (-march=x86-64).")
+endif()
+
 
 add_executable(benchmark
         src/include/DataManager.h
