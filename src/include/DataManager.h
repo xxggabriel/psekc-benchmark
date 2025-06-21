@@ -5,16 +5,17 @@
 #include <vector>
 #include <map>
 
-// Mapa de um k-tuple (string) para o vetor de propriedades (doubles)
 using PropertiesMap = std::map<std::string, std::vector<double>>;
 
 class DataManager {
 public:
     DataManager(std::string data_path, std::string sequence_path);
-    PropertiesMap load_properties();
-    std::string load_sequence();
+    bool setup_data_files();
+    PropertiesMap load_and_augment_properties();
+    std::vector<std::string> load_sequences();
 
 private:
+    bool _download_file(const std::string& url, const std::string& filename);
     std::string data_filepath;
     std::string sequence_filepath;
 };
