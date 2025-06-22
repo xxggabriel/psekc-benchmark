@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <iostream>
 #include <filesystem>
-
+#include <string>
 void ReportGenerator::print_table(const std::vector<BenchmarkResult>& results, bool show_k_lambda) {
     std::cout << "\n--- Resultados Finais do Benchmark ---" << std::endl;
     std::cout << std::left << std::setprecision(4);
@@ -57,7 +57,7 @@ void ReportGenerator::save_to_csv(const std::vector<BenchmarkResult>& results, c
 }
 
 void ReportGenerator::save_feature_matrix(
-    std::string base_dir,
+    const std::string& base_dir,
     const std::vector<std::vector<double>>& matrix,
     const std::vector<std::string>& feature_names,
     const std::vector<std::string>& sequence_ids,
@@ -66,7 +66,7 @@ void ReportGenerator::save_feature_matrix(
 {
     if (matrix.empty()) return;
     if (matrix.size() != sequence_ids.size()) {
-        std::cerr << "Erro: O número de matrizes de características não corresponde ao número de IDs de sequência." << std::endl;
+        std::cerr << "Erro: O número de matrizes de características não corresponde ao número de IDs." << std::endl;
         return;
     }
     if (feature_names.empty()) {
@@ -75,7 +75,6 @@ void ReportGenerator::save_feature_matrix(
     }
 
     std::filesystem::create_directories(base_dir);
-
     std::string platform_dir = base_dir + "/" + platform_name;
     std::filesystem::create_directories(platform_dir);
 
@@ -87,17 +86,15 @@ void ReportGenerator::save_feature_matrix(
         return;
     }
 
-    // Escreve o cabeçalho, agora com "ID"
     file << "ID,";
     for (size_t i = 0; i < feature_names.size(); ++i) {
         file << feature_names[i] << (i == feature_names.size() - 1 ? "" : ",");
     }
     file << "\n";
 
-    // Escreve cada linha da matriz, começando com o ID
     file << std::fixed << std::setprecision(10);
     for (size_t row_idx = 0; row_idx < matrix.size(); ++row_idx) {
-        file << sequence_ids[row_idx] << ","; // Escreve o ID
+        file << sequence_ids[row_idx] << ",";
         const auto& feature_vector = matrix[row_idx];
         for (size_t i = 0; i < feature_vector.size(); ++i) {
             file << feature_vector[i] << (i == feature_vector.size() - 1 ? "" : ",");
