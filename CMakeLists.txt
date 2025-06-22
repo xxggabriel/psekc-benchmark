@@ -39,17 +39,19 @@ endif()
 
 add_executable(benchmark
         src/include/DataManager.h
+        src/include/DatasetGenerator.h
         src/include/PseKNCProcessor.h
         src/include/CPUProcessor.h
         src/include/OMPProcessor.h
+        src/include/BenchmarkRunner.h
+        src/include/ReportGenerator.h
         src/main.cpp
         src/DataManager.cpp
+        src/DatasetGenerator.cpp
         src/PseKNCProcessor.cpp
         src/CPUProcessor.cpp
         src/OMPProcessor.cpp
-        src/include/BenchmarkRunner.h
         src/BenchmarkRunner.cpp
-        src/include/ReportGenerator.h
         src/ReportGenerator.cpp
 )
 
