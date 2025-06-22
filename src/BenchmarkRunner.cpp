@@ -185,3 +185,61 @@ void BenchmarkRunner::run(const std::vector<long long> &num_sequences_to_run) {
     ReportGenerator::print_table(all_results);
     ReportGenerator::save_to_csv(all_results, "../data/benchmark_report.csv");
 }
+
+
+void BenchmarkRunner::run_k_variation_benchmark(const std::vector<int>& k_values, long long num_sequences, PseKNCParams base_params) {
+    std::vector<BenchmarkResult> all_results;
+    auto seq_pairs = std::vector<SequenceData>(main_sequences.begin(), main_sequences.begin() + num_sequences);
+    std::vector<std::string> sequences;
+    for(const auto& p : seq_pairs) sequences.push_back(p.second);
+
+    for (int k : k_values) {
+        std::cout << "\n===== Benchmark: K = " << k << " para " << num_sequences << " sequências =====" << std::endl;
+        PseKNCParams current_params = base_params;
+        current_params.k_value = k;
+        
+        // Processadores precisam ser recriados pois `sorted_ktuples` depende de K
+        auto cpu_proc = std::make_unique<CPUProcessor>(properties, current_params);
+
+        auto t0 = std::chrono::high_resolution_clock::now();
+        for (const auto& seq : sequences) {
+            cpu_proc->process(seq);
+        }
+        auto t1 = std::chrono::high_resolution_clock::now();
+        double time_cpu = std::chrono::duration<double>(t1 - t0).count();
+        std::cout << "-> CPU Seq (K=" << k << "): " << time_cpu << " s" << std::endl;
+        all_results.push_back({"CPU Seq", num_sequences, 1, k, current_params.lambda_max, time_cpu, 0,0});
+    }
+    ReportGenerator::print_table(all_results, true);
+    ReportGenerator::save_to_csv(all_results, "benchmark_outputs/k_variation_report.csv");
+}
+
+// NOVO: Benchmark que varia o Lambda
+void BenchmarkRunner::run_lambda_variation_benchmark(const std::vector<int>& lambda_values, const std::vector<long long>& num_sequences_to_run, PseKNCParams base_params) {
+    std::vector<BenchmarkResult> all_results;
+    auto cpu_proc = std::make_unique<CPUProcessor>(properties, base_params);
+
+    for (long long num_seqs : num_sequences_to_run) {
+        auto seq_pairs = std::vector<SequenceData>(main_sequences.begin(), main_sequences.begin() + num_seqs);
+        std::vector<std::string> sequences;
+        for(const auto& p : seq_pairs) sequences.push_back(p.second);
+
+        for (int lambda : lambda_values) {
+            std::cout << "\n===== Benchmark: Lambda = " << lambda << " para " << num_seqs << " sequências =====" << std::endl;
+            PseKNCParams current_params = base_params;
+            current_params.lambda_max = lambda;
+            cpu_proc->params = current_params; // Atualiza os parâmetros do processador
+
+            auto t0 = std::chrono::high_resolution_clock::now();
+            for (const auto& seq : sequences) {
+                cpu_proc->process(seq);
+            }
+            auto t1 = std::chrono::high_resolution_clock::now();
+            double time_cpu = std::chrono::duration<double>(t1 - t0).count();
+            std::cout << "-> CPU Seq (L=" << lambda << "): " << time_cpu << " s" << std::endl;
+            all_results.push_back({"CPU Seq", num_seqs, 1, current_params.k_value, lambda, time_cpu, 0,0});
+        }
+    }
+    ReportGenerator::print_table(all_results, true);
+    ReportGenerator::save_to_csv(all_results, "benchmark_outputs/lambda_variation_report.csv");
+}
