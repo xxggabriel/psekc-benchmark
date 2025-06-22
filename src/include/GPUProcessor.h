@@ -9,7 +9,7 @@ public:
 
     ~GPUProcessor();
 
-    std::vector<std::vector<double> > process_batch(const std::vector<std::string> &sequences);
+    std::vector<std::vector<double> > process_batch(const std::vector<std::string> &sequences) override;
 
 private:
     std::vector<double> process(const std::string &sequence) override;
