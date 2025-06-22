@@ -1,6 +1,5 @@
 #ifndef OMPPROCESSOR_H
 #define OMPPROCESSOR_H
-
 #include "PseKNCProcessor.h"
 
 class OMPProcessor : public PseKNCProcessor {
