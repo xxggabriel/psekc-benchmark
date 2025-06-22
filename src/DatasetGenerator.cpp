@@ -4,7 +4,8 @@
 #include <stdexcept>
 #include <algorithm>
 #include <iomanip>
-
+#include <filesystem>
+#include <string>
 DatasetGenerator::DatasetGenerator() {
     std::random_device rd;
     random_engine.seed(rd());
