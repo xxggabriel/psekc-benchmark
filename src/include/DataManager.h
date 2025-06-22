@@ -11,7 +11,8 @@ using SequenceData = std::pair<std::string, std::string>; // <ID, Sequência>
 
 class DataManager {
 public:
-    DataManager(std::string data_path, std::string sequence_path);
+    DataManager(std::string data_url, std::string data_filename,
+                std::string sequence_url, std::string sequence_filename);
 
     bool setup_data_files();
 
@@ -22,8 +23,10 @@ public:
 private:
     bool _download_file(const std::string &url, const std::string &filename);
 
-    std::string data_filepath;
-    std::string sequence_filepath;
+    std::string data_url;
+    std::string data_filename;
+    std::string sequence_url;
+    std::string sequence_filename;
 };
 
 #endif // DATAMANAGER_H
