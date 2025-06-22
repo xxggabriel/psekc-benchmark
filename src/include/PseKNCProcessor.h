@@ -18,7 +18,11 @@ public:
 
     virtual std::vector<double> process(const std::string &sequence) = 0;
 
+    virtual std::vector<std::vector<double> > process_batch(const std::vector<std::string> &sequences);
+
     std::vector<std::string> get_feature_names() const;
+
+    void set_params(PseKNCParams new_params);
 
 protected:
     virtual std::vector<std::string> prepare_ktuples(const std::string &sequence);

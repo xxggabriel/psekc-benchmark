@@ -11,6 +11,20 @@ PseKNCProcessor::PseKNCProcessor(const PropertiesMap &properties, PseKNCParams p
     std::sort(sorted_ktuples.begin(), sorted_ktuples.end());
 }
 
+void PseKNCProcessor::set_params(PseKNCParams new_params) {
+    this->params = new_params;
+}
+
+
+std::vector<std::vector<double>> PseKNCProcessor::process_batch(const std::vector<std::string>& sequences) {
+    std::vector<std::vector<double>> results;
+    results.reserve(sequences.size());
+    for (const auto& seq : sequences) {
+        results.push_back(process(seq));
+    }
+    return results;
+}
+
 std::vector<std::string> PseKNCProcessor::get_feature_names() const {
     std::vector<std::string> names = sorted_ktuples;
     for (int i = 1; i <= params.lambda_max; ++i) {
