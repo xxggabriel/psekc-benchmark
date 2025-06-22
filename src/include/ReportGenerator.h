@@ -9,6 +9,8 @@ struct BenchmarkResult {
     std::string platform;
     long long sequence_size;
     int num_threads;
+    int k_value;
+    int lambda_max;
     double duration_sec;
     double speedup;
     double efficiency_percent;
@@ -16,7 +18,7 @@ struct BenchmarkResult {
 
 class ReportGenerator {
 public:
-    static void print_table(const std::vector<BenchmarkResult>& results);
+    static void print_table(const std::vector<BenchmarkResult>& results, bool show_k_lambda);
     static void save_to_csv(const std::vector<BenchmarkResult>& results, const std::string& filename);
 
     static void save_feature_matrix(
